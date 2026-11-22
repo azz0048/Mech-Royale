@@ -16,11 +16,13 @@ pub(crate) struct Ffa {
     pub foreign: Vec<(i64, f64)>,
     beam_last: Vec<(i64, f64)>,
     pub seed: i64,
+    /// indirect signals (foreign beams, unexplained damage) needed to switch; 3 = original
+    pub sig_min: f64,
 }
 
 impl Ffa {
     pub fn new(seed: i64) -> Ffa {
-        Ffa { seed, ..Default::default() }
+        Ffa { seed, sig_min: 3.0, ..Default::default() }
     }
 
     pub fn foreign_t(&self, id: i64) -> f64 {
@@ -125,7 +127,7 @@ impl Ffa {
         if self.seen_hp.len() > 32 {
             self.seen_hp.remove(0);
         }
-        if self.sig >= 3 {
+        if self.sig as f64 >= self.sig_min {
             self.set(t, 2);
         }
     }

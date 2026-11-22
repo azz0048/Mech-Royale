@@ -140,6 +140,7 @@ impl Brain {
     }
 
     pub fn with_params(hello: &proto::Hello, shared: Arc<Shared>, params: Params) -> Brain {
+        let ffa_sig_min = params.ffa_sig_min;
         let mut rng = Rng::new(hello.seed as u64 ^ ((hello.slot as u64) << 40) ^ (params.salt.max(0.0) as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
         let side = if rng.f64() < 0.5 { -1.0 } else { 1.0 };
         let roof = if params.roof_mode > 0.0 {
@@ -184,7 +185,7 @@ impl Brain {
             gear: gear::Gear::default(),
             sf: safety::Safety::default(),
             wave: wave::WaveState::new(),
-            ffa: ffa::Ffa::new(hello.seed),
+            ffa: { let mut f = ffa::Ffa::new(hello.seed); f.sig_min = ffa_sig_min; f },
             spot: None,
             order: order::Order::default(),
             order_has_passive: false,

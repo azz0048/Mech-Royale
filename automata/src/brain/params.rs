@@ -33,6 +33,8 @@ pub struct Params {
     pub ffa_vulture_hp: f64,
     pub ffa_end_bonus: f64,
     pub ffa_early_quiet_range: f64,
+    /// FFA detection: indirect signals needed (3 = original; large = early deaths only)
+    pub ffa_sig_min: f64,
     // planner
     pub horizon_steps: f64,
     pub n_dirs: f64,
@@ -422,6 +424,7 @@ impl Default for Params {
             ffa_vulture_hp: 0.50,
             ffa_end_bonus: 0.0,
             ffa_early_quiet_range: 0.0,
+            ffa_sig_min: 3.0,
             horizon_steps: 8.0,
             n_dirs: 16.0,
             n_boost_dirs: 8.0,
