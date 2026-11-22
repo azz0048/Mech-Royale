@@ -297,8 +297,11 @@ impl Brain {
             let (base, far) = self.pref_range(obs, tr, hpf);
             let pref = self.gear_range(obs, tr, base);
             self.stand_off = far && pref >= base;
-            let hold = p.hold_hunter > 0.0 && !los && self.holds_for(obs, tr);
-            let g0 = if los {
+            let hold = p.hold_hunter > 0.0 && (!los || p.hold_los > 0.0) && self.holds_for(obs, tr);
+            let g0 = if los && hold {
+                // in sight and coming for us: never walk toward it, only back off inside the preferred distance
+                Goal::Range { pos: tp, pref: pref.max(dist2(tp, pos)) }
+            } else if los {
                 Goal::Range { pos: tp, pref }
             } else if hold {
                 // wait where we are while it closes in, back off once it is nearer than the preferred distance

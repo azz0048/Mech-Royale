@@ -4,7 +4,7 @@ import { Brain } from "./src/brain.ts"
 /** Minimal fallback if the full brain cannot start (e.g. map missing): go to the zone, shoot what we see. */
 function fallback(): Bot {
   return {
-    name: "AAs",
+    name: "not-even-close",
     act(obs: Observation) {
       const [x, y, z] = obs.self.pos
       const g = obs.zone.next_center

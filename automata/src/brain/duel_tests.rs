@@ -133,3 +133,74 @@ fn fast_hunter() {
     assert!(squad.t_close >= old.t_close * 1.5, "model {:.1} s against legacy {:.1} s", squad.t_close, old.t_close);
     assert!(boost.t_close >= squad.t_close - 0.5, "boost {:.1} s against {:.1} s", boost.t_close, squad.t_close);
 }
+
+#[test]
+fn ffa_profile_swap() {
+    let p: Params = serde_json::from_str(r#"{"rest_after_k":5,"ffa_params":{"ffa_on":1,"cube_avoid":10}}"#).expect("params");
+    assert!(p.ffa_params.is_some());
+    let hello = crate::proto::Hello::default();
+    let world = crate::world::World::empty();
+    let shared = Arc::new(Shared { nav: crate::nav::Nav::build(&world, &hello.config.mech), world });
+    let mut brain = Brain::with_params(&hello, shared, p);
+    let mut o = Obs::default();
+    o.tick = 2;
+    o.t = 0.1;
+    let _ = brain.act(&o, &Budget::unlimited());
+    assert_eq!(brain.p.rest_after_k, 5.0);
+    assert_eq!(brain.p.ffa_on, 0.0);
+    brain.ffa.on = true;
+    o.tick = 4;
+    o.t = 0.2;
+    let _ = brain.act(&o, &Budget::unlimited());
+    assert_eq!(brain.p.ffa_on, 1.0);
+    assert_eq!(brain.p.cube_avoid, 10.0);
+    assert_eq!(brain.p.rest_after_k, 0.0);
+    assert_eq!(brain.p.mode_detect, 1.0);
+    assert!(brain.p.ffa_params.is_none());
+}
+
+#[test]
+#[ignore]
+fn ffa_detect_on_stream() {
+    let Ok(path) = std::env::var("MECH_STREAM") else { return };
+    let Ok(pp) = std::env::var("MECH_PARAMS_TEST") else { return };
+    let p: Params = serde_json::from_str(&std::fs::read_to_string(pp).unwrap()).unwrap();
+    let text = std::fs::read_to_string(path).unwrap();
+    let world = crate::world::World::empty();
+    let mut brain: Option<Brain> = None;
+    for l in text.lines() {
+        match serde_json::from_str::<crate::proto::ServerMsg>(l) {
+            Ok(crate::proto::ServerMsg::Hello(h)) => {
+                let shared = Arc::new(Shared { nav: crate::nav::Nav::build(&world, &h.config.mech), world: crate::world::World::empty() });
+                brain = Some(Brain::with_params(&h, shared, p.clone()));
+            }
+            Ok(crate::proto::ServerMsg::Obs(o)) => {
+                let b = brain.as_mut().unwrap();
+                let _ = b.act(&o, &Budget::unlimited());
+                if (o.tick % 40) == 0 || b.ffa.on {
+                    eprintln!("t={:.1} alive={} ffa_on={} p.ffa_on={} mode_detect={}", o.t, o.alive, b.ffa.on, b.p.ffa_on, b.p.mode_detect);
+                    if b.ffa.on { break; }
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+#[test]
+fn ffa_clock_gate() {
+    let past: Params = serde_json::from_str(r#"{"ffa_after_unix":1,"ffa_params":{"ffa_on":1}}"#).expect("params");
+    let future: Params = serde_json::from_str(r#"{"ffa_after_unix":99999999999,"ffa_params":{"ffa_on":1}}"#).expect("params");
+    let hello = crate::proto::Hello::default();
+    for (p, want) in [(past, true), (future, false)] {
+        let world = crate::world::World::empty();
+        let shared = Arc::new(Shared { nav: crate::nav::Nav::build(&world, &hello.config.mech), world });
+        let mut brain = Brain::with_params(&hello, shared, p);
+        let mut o = Obs::default();
+        o.tick = 2;
+        o.t = 0.1;
+        let _ = brain.act(&o, &Budget::unlimited());
+        assert_eq!(brain.ffa.on, want);
+        assert_eq!(brain.p.ffa_on > 0.5, want);
+    }
+}

@@ -16,13 +16,11 @@ pub(crate) struct Ffa {
     pub foreign: Vec<(i64, f64)>,
     beam_last: Vec<(i64, f64)>,
     pub seed: i64,
-    /// indirect signals (foreign beams, unexplained damage) needed to switch; 3 = original
-    pub sig_min: f64,
 }
 
 impl Ffa {
     pub fn new(seed: i64) -> Ffa {
-        Ffa { seed, sig_min: 3.0, ..Default::default() }
+        Ffa { seed, ..Default::default() }
     }
 
     pub fn foreign_t(&self, id: i64) -> f64 {
@@ -37,6 +35,11 @@ impl Ffa {
         }
     }
 
+    /// Free-for-all known from outside the match (wall clock past the practice cutoff).
+    pub fn force(&mut self, t: f64) {
+        self.set(t, 3);
+    }
+
     fn set(&mut self, t: f64, why: u8) {
         if !self.on {
             self.on = true;
@@ -48,7 +51,7 @@ impl Ffa {
         }
     }
 
-    pub fn update(&mut self, obs: &Obs, tracks: &[Track], enabled: bool) {
+    pub fn update(&mut self, obs: &Obs, tracks: &[Track], enabled: bool, sig_n: u32, death_n: i64) {
         let t = obs.t;
         let me = &obs.me;
         if self.alive0 <= 0 {
@@ -74,7 +77,7 @@ impl Ffa {
             return;
         }
         let deaths = self.alive0 - obs.alive;
-        if t < 75.0 && deaths >= self.kills + 2 {
+        if t < 75.0 && deaths >= self.kills + death_n.max(1) {
             self.set(t, 1);
         }
         let is_npc = |id: i64| tracks.iter().any(|tr| tr.id == id && tr.kind == ActorKind::Npc) || obs.mechs.iter().any(|m| m.id == id && m.kind == ActorKind::Npc);
@@ -127,7 +130,7 @@ impl Ffa {
         if self.seen_hp.len() > 32 {
             self.seen_hp.remove(0);
         }
-        if self.sig as f64 >= self.sig_min {
+        if self.sig >= sig_n.max(1) {
             self.set(t, 2);
         }
     }

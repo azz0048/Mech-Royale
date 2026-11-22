@@ -17,7 +17,7 @@ type Goal = { pos: V2; kind: "pickup" | "cube" | "farm" | "explore"; id: number 
 type LaserMode = "off" | "charge" | "shoot"
 
 export class Brain {
-  name = "AAs"
+  name = "not-even-close"
   hello: Hello
   m: GameMap
   w: World

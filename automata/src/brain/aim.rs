@@ -130,7 +130,7 @@ impl Brain {
                 s += 40.0;
             }
             if self.target == Tgt::Mech(tr.id) {
-                s += 50.0;
+                s += self.p.fc_focus;
             }
             if d < max_range {
                 s += 50.0;

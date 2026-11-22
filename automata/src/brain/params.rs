@@ -33,8 +33,6 @@ pub struct Params {
     pub ffa_vulture_hp: f64,
     pub ffa_end_bonus: f64,
     pub ffa_early_quiet_range: f64,
-    /// FFA detection: indirect signals needed (3 = original; large = early deaths only)
-    pub ffa_sig_min: f64,
     // planner
     pub horizon_steps: f64,
     pub n_dirs: f64,
@@ -214,6 +212,18 @@ pub struct Params {
     /// at or above this health with the cube limit reached (squad play), leave a supply drop for later and wait next to it
     pub drop_save: f64,
     pub drop_save_dist: f64,
+    /// fire-control weight of the chosen target over other visible mechs
+    pub fc_focus: f64,
+    /// with hold_hunter: also hold (never close in) on a hunter in sight
+    pub hold_los: f64,
+    /// free-for-all detection: number of foreign-fight signals needed
+    pub ffa_sig_n: f64,
+    /// free-for-all detection: deaths not caused by us before 75 s
+    pub ffa_death_n: f64,
+    /// unix time after which every match is treated as free-for-all from the start (0 = off)
+    pub ffa_after_unix: f64,
+    /// settings that replace these ones once free-for-all play is detected
+    pub ffa_params: Option<Box<Params>>,
     pub w_cube_avoid: f64,
     pub finish_hp: f64,
     pub finish_bonus: f64,
@@ -424,7 +434,6 @@ impl Default for Params {
             ffa_vulture_hp: 0.50,
             ffa_end_bonus: 0.0,
             ffa_early_quiet_range: 0.0,
-            ffa_sig_min: 3.0,
             horizon_steps: 8.0,
             n_dirs: 16.0,
             n_boost_dirs: 8.0,
@@ -627,6 +636,12 @@ impl Default for Params {
             prep_open: 0.0,
             drop_save: 0.0,
             drop_save_dist: 200.0,
+            fc_focus: 50.0,
+            hold_los: 0.0,
+            ffa_sig_n: 3.0,
+            ffa_death_n: 2.0,
+            ffa_after_unix: 0.0,
+            ffa_params: None,
             w_cube_avoid: 30.0,
             gear_on: 0.0,
             gear_harmless_dmg: 150.0,
